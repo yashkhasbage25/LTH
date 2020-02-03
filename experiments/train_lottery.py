@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import torch.backends.cudnn as cudnn
 import torchvision.datasets as datasets
 import torchvision.transforms as transforms
+import torch.optim.lr_scheduler as lr_scheduler
 
 from torchvision import models
 
@@ -46,117 +47,34 @@ def parse_args():
     default_seed = 0
     default_momentum = 0.9
     default_start = 100.0
-    default_end = 0.1
+    default_end = 1.0
     default_steps = 10
+    default_step_gamma = 0.2
+    default_milestones = [50, 100]
 
 
-    parser.add_argument('-lr',
-                        type=float,
-                        default=default_lr,
-                        help='learning rate'
-                        )
-
-    parser.add_argument('-l2',
-                        type=float,
-                        default=default_l2,
-                        help='l2 penalty'
-                        )
-
-    parser.add_argument('-n',
-                        '--num_epochs',
-                        type=int,
-                        default=default_num_epochs,
-                        help='number of training epochs'
-                        )
-
-    parser.add_argument('-d',
-                        '--dataset',
-                        type=str,
-                        choices=dataset_choices,
-                        required=True,
-                        help='dataset'
-                        )
-
-    parser.add_argument('-b',
-                        '--batch_size',
-                        type=int,
-                        default=default_batch_size,
-                        help='batch size for training'
-                        )
-
-    parser.add_argument('-j',
-                        '--workers',
-                        type=int,
-                        default=default_workers,
-                        help='number of wrokers for dataloader'
-                        )
-
-    parser.add_argument('--dataset_root',
-                        type=str,
-                        default=default_dataset_root,
-                        help='directory for dataset'
-                        )
-
-    parser.add_argument('-m',
-                        '--model',
-                        type=str,
-                        required=True,
-                        help='model'
-                        )
-
-    parser.add_argument('-mom',
-                        type=float,
-                        default=default_momentum,
-                        help='momentum for SGD'
-                        )
-
-    parser.add_argument('--cuda',
-                        type=int,
-                        help='use cuda, if use, then give gpu number'
-                        )
-
-    parser.add_argument('-r',
-                        '--run',
-                        type=str,
-                        required=True,
-                        help='run directory prefix'
-                        )
-
-    parser.add_argument('-dp', 
-                        action='store_true', 
-                        help='data parallel model'
-                        )
-
-    parser.add_argument('--augment',
-                        action='store_true',
-                        help='augment data with random-flip and random crop'
-                        )
-
-    parser.add_argument('--seed',
-                        type=int,
-                        default=default_seed,
-                        help='seed for randomness'
-                        )
-
-    parser.add_argument('-f', 
-                        action='store_true',
-                        help='force rewrite'
-                        )
-
-    parser.add_argument('-pre', 
-                        action='store_true', 
-                        help='pretrained imagenet weights'
-                        )
-
-    parser.add_argument('-start', type=float, default=default_start, help='start')
+    parser.add_argument('-lr', type=float, default=default_lr, help='learning rate')
+    parser.add_argument('-l2', type=float, default=default_l2, help='l2 penalty')
+    parser.add_argument('-n', '--num_epochs', type=int, default=default_num_epochs, help='number of training epochs')
+    parser.add_argument('-d', '--dataset', type=str, choices=dataset_choices, required=True, help='dataset')
+    parser.add_argument('-b', '--batch_size', type=int, default=default_batch_size, help='batch size for training')
+    parser.add_argument('-j', '--workers', type=int, default=default_workers, help='number of wrokers for dataloader')
+    parser.add_argument('-m', '--model', type=str, required=True, help='model')
+    parser.add_argument('-r', '--run', type=str, required=True, help='run directory prefix')
+    parser.add_argument('-f', action='store_true', help='force rewrite')
+    parser.add_argument('-dp', action='store_true', help='data parallel model')
+    parser.add_argument('-mom', type=float, default=default_momentum, help='momentum for SGD')
+    parser.add_argument('-pre', action='store_true', help='pretrained imagenet weights')
     parser.add_argument('-end', type=float, default=default_end, help='end')
+    parser.add_argument('-start', type=float, default=default_start, help='start')
     parser.add_argument('-steps', type=int, default=default_steps, help='number of pruning steps')
-                        
-    parser.add_argument('-pdb',
-                        '--with_pdb',
-                        action='store_true',
-                        help='run with python debugger'
-                        )
+    parser.add_argument('--cuda', type=int, help='use cuda, if use, then give gpu number')
+    parser.add_argument('--seed', type=int, default=default_seed, help='seed for randomness')
+    parser.add_argument('--augment', action='store_true', help='augment data with random-flip and random crop')
+    parser.add_argument('--milestones', type=int, nargs='+', default=default_milestones, help='milestones for multistep-lr')
+    parser.add_argument('--step_gamma', type=float, default=default_step_gamma, help='step gamma for multistep lr')
+    parser.add_argument('--dataset_root', type=str, default=default_dataset_root, help='directory for dataset')
+    parser.add_argument('-pdb', '--with_pdb', action='store_true', help='run with python debugger')
 
     return parser.parse_args()
 
@@ -197,6 +115,7 @@ def evaluate_model(model,
 def train(model,
           mask,
           optimizer,
+          scheduler,
           dataloaders,
           criterion,
           device,
@@ -230,10 +149,11 @@ def train(model,
                 mask.apply_mask_to_grads(model)
                 optimizer.step()
 
+        scheduler.step()
         # evaluate 
         logger.info('epoch: {}'.format(epoch))
         for phase in ['train', 'test']:
-            logger.info('{}'.format(phase))
+            logger.info('{}:'.format(phase))
             stats = evaluate_model(model, 
                 criterion, 
                 dataloaders[phase], 
@@ -359,7 +279,7 @@ if __name__ == '__main__':
     torch.save(model.state_dict(), init_model_weights_path)
 
     # mask of ones
-    mask = LotteryMask(model, start=args.start, end=args.end, steps=args.steps)
+    mask = LotteryMask(model, device, start=args.start, end=args.end, steps=args.steps)
 
     # start pruning
     for pruning_index in range(args.steps):
@@ -368,12 +288,16 @@ if __name__ == '__main__':
 
         # optimizer
         optimizer = optim.SGD(model.parameters(), lr=args.lr, weight_decay=args.l2, momentum=args.mom)
+
+        # scheduler
+        scheduler = lr_scheduler.MultiStepLR(optimizer, args.milestones, gamma=args.step_gamma)
             
         model = mask.apply_mask_to_weights(model)
         # ready to train
         system = train(model,
                     mask,
                     optimizer,
+                    scheduler,
                     dataloaders,
                     criterion,
                     device,

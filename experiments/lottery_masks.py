@@ -5,10 +5,11 @@ import numpy as np
 
 class LotteryMask():
 
-    def __init__(self, model, start=100.0, end=1.0, steps=20):
+    def __init__(self, model, device, start=100.0, end=1.0, steps=20):
 
         self.mask = [torch.ones_like(p) for p in model.parameters()]
         self.common_ratio = np.power((end / start), 1.0/ (steps - 1))
+        self.device = device
 
         self.p_m = start * self.common_ratio
 
@@ -31,31 +32,26 @@ class LotteryMask():
         with torch.no_grad():
             for (p, m) in zip(model.parameters(), self.mask):
                 p.grad = p.grad * m
-
     
     def update_mask(self, model):
 
         with torch.no_grad():
-            new_p_m = self.p_m - self.p_m * self.common_ratio
-            pruned_indices = [p == 0.0 for p in model.parameters()]
+            self.p_m = self.p_m * self.common_ratio
+            # pruned_indices = [p == 0.0 for p in model.parameters()]
 
             weights = torch.cat([p.view(-1) for p in model.parameters()])
             weights = weights.detach().cpu().numpy()
-            percentile = np.percentile(abs(weights), (100 - new_p_m))
-            updated_mask = np.where(abs(weights) < percentile, 0.0, 1.0)
-            self.mask = list()
+            percentile = np.percentile(abs(weights), (100 - self.p_m))
+            updated_mask_flat = np.where(abs(weights) < percentile, 0.0, 1.0)
+            updated_mask = list()
             for layer_name, p in model.named_parameters():
                 lb, ub = self.layer_indices[layer_name]
-                self.mask.append(updated_mask[lb:ub])
-            self.mask = [torch.from_numpy(m).to(model.device) for m in self.mask]
-        # updated_mask = list()
-        # for p in model.parameters():
-        #     layer_weights = p.data.cpu().numpy()
-        #     percentile = np.percentile(abs(layer_weights), (100 - new_p_m))
-        #     updated_mask.append(np.where(abs(layer_weights) < percentile, 0.0, 1.0))
-            
-        # self.mask = [torch.from_numpy(u).to(p.device).float() for u in updated_mask]
-        self.p_m = new_p_m
+                layer_mask = updated_mask_flat[lb:ub].reshape(p.size())
+                updated_mask.append(torch.tensor(layer_mask).float().to(self.device))
+            for p, p_ in zip(self.mask, updated_mask):
+                assert p.size() == p_.size(), 'sizes not matching: {} and {}'.format(p.size(), p_.size())
+
+            self.mask = updated_mask
 
     def prune_to_zero(self, model):
 

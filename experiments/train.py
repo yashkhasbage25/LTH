@@ -46,109 +46,23 @@ def parse_args():
     default_momentum = 0.9
 
 
-    parser.add_argument('-lr',
-                        type=float,
-                        default=default_lr,
-                        help='learning rate'
-                        )
-
-    parser.add_argument('-l2',
-                        type=float,
-                        default=default_l2,
-                        help='l2 penalty'
-                        )
-
-    parser.add_argument('-n',
-                        '--num_epochs',
-                        type=int,
-                        default=default_num_epochs,
-                        help='number of training epochs'
-                        )
-
-    parser.add_argument('-d',
-                        '--dataset',
-                        type=str,
-                        choices=dataset_choices,
-                        required=True,
-                        help='dataset'
-                        )
-
-    parser.add_argument('-b',
-                        '--batch_size',
-                        type=int,
-                        default=default_batch_size,
-                        help='batch size for training'
-                        )
-
-    parser.add_argument('-j',
-                        '--workers',
-                        type=int,
-                        default=default_workers,
-                        help='number of wrokers for dataloader'
-                        )
-
-    parser.add_argument('--dataset_root',
-                        type=str,
-                        default=default_dataset_root,
-                        help='directory for dataset'
-                        )
-
-    parser.add_argument('-m',
-                        '--model',
-                        type=str,
-                        required=True,
-                        help='model'
-                        )
-
-    parser.add_argument('-mom',
-                        type=float,
-                        default=default_momentum,
-                        help='momentum for SGD'
-                        )
-
-    parser.add_argument('--cuda',
-                        type=int,
-                        help='use cuda, if use, then give gpu number'
-                        )
-
-    parser.add_argument('-r',
-                        '--run',
-                        type=str,
-                        required=True,
-                        help='run directory prefix'
-                        )
-
-    parser.add_argument('-dp', 
-                        action='store_true', 
-                        help='data parallel model'
-                        )
-
-    parser.add_argument('--augment',
-                        action='store_true',
-                        help='augment data with random-flip and random crop'
-                        )
-
-    parser.add_argument('--seed',
-                        type=int,
-                        default=default_seed,
-                        help='seed for randomness'
-                        )
-
-    parser.add_argument('-f', 
-                        action='store_true',
-                        help='force rewrite'
-                        )
-
-    parser.add_argument('-pre', 
-                        action='store_true', 
-                        help='pretrained imagenet weights'
-                        )
-                        
-    parser.add_argument('-pdb',
-                        '--with_pdb',
-                        action='store_true',
-                        help='run with python debugger'
-                        )
+    parser.add_argument('-lr', type=float, default=default_lr, help='learning rate')
+    parser.add_argument('-l2', type=float, default=default_l2, help='l2 penalty')
+    parser.add_argument('-n', '--num_epochs', type=int, default=default_num_epochs, help='number of training epochs')
+    parser.add_argument('-d', '--dataset', type=str, choices=dataset_choices, required=True, help='dataset')
+    parser.add_argument('-b', '--batch_size', type=int, default=default_batch_size, help='batch size for training')
+    parser.add_argument('-j', '--workers', type=int, default=default_workers, help='number of wrokers for dataloader')
+    parser.add_argument('-m', '--model', type=str, required=True, help='model')
+    parser.add_argument('-f', action='store_true', help='force rewrite')
+    parser.add_argument('-r', '--run', type=str, required=True, help='run directory prefix')
+    parser.add_argument('-dp', action='store_true', help='data parallel model')
+    parser.add_argument('-pre', action='store_true', help='pretrained imagenet weights')
+    parser.add_argument('-mom', type=float, default=default_momentum, help='momentum for SGD')
+    parser.add_argument('--cuda', type=int, help='use cuda, if use, then give gpu number')
+    parser.add_argument('--seed', type=int, default=default_seed, help='seed for randomness')
+    parser.add_argument('--augment', action='store_true', help='augment data with random-flip and random crop')
+    parser.add_argument('--dataset_root', type=str, default=default_dataset_root, help='directory for dataset')
+    parser.add_argument('-pdb', '--with_pdb', action='store_true', help='run with python debugger')
 
     return parser.parse_args()
 

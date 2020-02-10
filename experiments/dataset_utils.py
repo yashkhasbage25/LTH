@@ -5,7 +5,7 @@ from torchvision import datasets
 from torchvision import transforms
 from torch.utils import data
 
-dataset_choices = ['MNIST', 'FashionMNIST', 'SVHN', 'STL10', 'CIFAR10', 'CIFAR100', 'TinyImageNet']
+dataset_choices = ['MNIST', 'FashionMNIST', 'SVHN', 'STL10', 'CIFAR10', 'CIFAR100', 'TinyImageNet', 'CelebA']
 
 def get_dataset(dataset_name, dataset_root, train_transform, test_transform):
 
@@ -30,6 +30,9 @@ def get_dataset(dataset_name, dataset_root, train_transform, test_transform):
     elif dataset_name == 'TinyImageNet':
         train_data = datasets.ImageFolder(osp.join(dataset_root, 'tiny-imagenet-200', 'torch_train'), transform=train_transform)
         test_data = datasets.ImageFolder(osp.join(dataset_root, 'tiny-imagenet-200', 'torch_val'), transform=test_transform)
+    elif dataset_name == 'CelebA':
+        train_data = datasets.ImageFolder(osp.join(dataset_root, 'CelebA'), transform=train_transform)
+        test_data = None
     else:
         raise Exception('Unknown dataset: {}'.format(args.dataset))
 
@@ -57,20 +60,25 @@ def get_mean_std(dataset):
     elif dataset == 'TinyImageNet':
         mean = [0.4802, 0.4481, 0.3975]
         std = [0.2302, 0.2265, 0.2262]
+    elif dataset == 'CelebA':
+        mean = [0.5, 0.5, 0.5]
+        std = [0.5, 0.5, 0.5]
     else:
         raise Exception('Unknown dataset: {}'.format(dataset))
 
     return mean, std
 
-def get_dataset_transforms(mean, std, augment=False):
+def get_dataset_transforms(mean, std, size, augment=False):
 
     test_transform = transforms.Compose([
+        transforms.Resize(size),
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
     ])
 
     if augment:
         train_transform = transforms.Compose([
+            transforms.Resize(size),
             transforms.ColorJitter(),
             transforms.RandomRotation(10),
             transforms.RandomHorizontalFlip(),
@@ -130,6 +138,13 @@ def get_dataset_config(dataset_name):
         # config['train']       = 1e5
         # config['test']        = 1e4
         config['dataset_size']= {'train': 1e5, 'test': 1e4}
+
+    elif dataset_name in ['CelebA']:
+        config['size']        = 64
+        config['ch']          = 3
+        config['num_classes'] = None
+
+        config['dataset_size']= {'train': 202599}
 
     else:
         raise Exception('unknown dataset: {}'.format(dataset_name))

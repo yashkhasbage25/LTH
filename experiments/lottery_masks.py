@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import copy
 import torch
 import numpy as np
 
@@ -8,10 +9,10 @@ class LotteryMask():
     def __init__(self, model, device, start=100.0, end=1.0, steps=20):
 
         self.mask = [torch.ones_like(p) for p in model.parameters()]
-        self.common_ratio = np.power((end / start), 1.0/ (steps - 1))
+        self.common_ratio = np.power((end / start), 1.0 / (steps - 1))
         self.device = device
 
-        self.p_m = start * self.common_ratio
+        self.p_m = start
 
         self.layer_indices = dict()
         cumul_sum = 0
@@ -69,8 +70,9 @@ class LotteryMask():
 
     def reset_to_init(self, model, init_state_dict):
         
+        init_model = copy.deepcopy(model)
+        init_model.load_state_dict(init_state_dict)
         with torch.no_grad():
-            for (p_now, p_init, m) in zip(model.parameters(), init_state_dict.values(), self.mask):
+            for (p_now, p_init, m) in zip(model.parameters(), init_model.parameters(), self.mask):
                 indices = m > 0.0
-                p_now[indices] = p_init[indices]
-                
+                p_now[indices] = p_init[indices]              

@@ -324,4 +324,4 @@ if __name__ == '__main__':
         gloss_stats_path = osp.join(ckpt_dir, 'train_lottery_gloss_stats_{:.3e}.npy'.format(Pm))
         dloss_stats_path = osp.join(ckpt_dir, 'train_lottery_dloss_stats_{:.3e}.npy'.format(Pm))
         np.save(gloss_stats_path, system['gloss'])
-        np.save(loss_stats_path, system['dloss'])
+        np.save(dloss_stats_path, system['dloss'])

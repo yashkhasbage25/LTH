@@ -72,6 +72,7 @@ def parse_args():
     parser.add_argument('-steps', type=int, default=default_steps, help='number of pruning steps')
     parser.add_argument('-cuda', type=int, help='use cuda, if use, then give gpu number')
     parser.add_argument('-seed', type=int, default=default_seed, help='seed for randomness')
+    parser.add_argument('-save_final', action='store_true', help='save final weights with mask')
     parser.add_argument('--augment', action='store_true', help='augment data with random-flip and random crop')
     parser.add_argument('--milestones', type=int, nargs='+', default=default_milestones, help='milestones for multistep-lr')
     parser.add_argument('--step_gamma', type=float, default=default_step_gamma, help='step gamma for multistep lr')
@@ -281,6 +282,11 @@ if __name__ == '__main__':
         scheduler = lr_scheduler.MultiStepLR(optimizer, args.milestones, gamma=args.step_gamma)
             
         model = mask.apply_mask_to_weights(model)
+
+        unpruned_count, overall_count = mask.get_pruned_stats()
+        Pm = unpruned_count * 100.0 / overall_count
+        print('Pm:', Pm.item(), '%')
+
         # ready to train
         system = train(model,
                     mask,
@@ -297,12 +303,18 @@ if __name__ == '__main__':
                     pruning_index
                     )
 
-        unpruned_count, overall_count = mask.get_pruned_stats()
-        Pm = unpruned_count / overall_count
-        print('Pm:', Pm.item(), '%')
 
         if pruning_index == 0:
             torch.save(system['rewind_state_dict'], rewind_model_weights_path)
+
+        if args.save_final:
+            final_weights_path = osp.join(ckpt_dir, 'final_weights_Pm_{}.pth'.format(Pm))
+            torch.save({
+                    'model': system['model'],
+                    'mask': mask.get_mask()
+                }
+                , final_weights_path
+            )
 
         mask.update_mask(model)
         # mask 0 action
@@ -316,6 +328,7 @@ if __name__ == '__main__':
         loss_stats_path = osp.join(ckpt_dir, 'train_lottery_loss_stats_{:.3e}.npz'.format(Pm))
         np.savez(acc_stats_path, **system['acc'])
         np.savez(loss_stats_path, **system['loss'])
+
 
         print('test acc:', system['acc']['test'][-1])
         print('train acc:', system['acc']['train'][-1])

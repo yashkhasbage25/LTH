@@ -75,4 +75,8 @@ class LotteryMask():
         with torch.no_grad():
             for (p_now, p_init, m) in zip(model.parameters(), init_model.parameters(), self.mask):
                 indices = m > 0.0
-                p_now[indices] = p_init[indices]              
+                p_now[indices] = p_init[indices]          
+
+    def get_mask(self):
+
+        return copy.deepcopy(self.mask)    

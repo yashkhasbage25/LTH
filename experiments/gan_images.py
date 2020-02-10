@@ -45,7 +45,6 @@ if __name__ == '__main__':
     for dirname in [args.run, logs_dir, images_dir, ckpt_dir]:
         assert osp.exists(dirname), '{} was not found'.format(dirname)
 
-    plt.axis('off')
 
     arr_paths = glob.glob(osp.join(ckpt_dir, 'gene_*.pth'), recursive=False)
     for arr_path in arr_paths:
@@ -56,6 +55,7 @@ if __name__ == '__main__':
         epochs = arrs.keys()
         for epoch in epochs:
             plt.close('all')
+            plt.axis('off')
             plt.title('{:.2f}%, epoch={}'.format(float(Pm), epoch))
             plt.imshow(np.transpose(vutils.make_grid(arrs[epoch], padding=2, normalize=True).cpu(), (1, 2, 0)))
 

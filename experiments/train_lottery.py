@@ -24,7 +24,6 @@ from torchvision import models
 
 import networks
 from dataset_utils import *
-from logging_utils import *
 from lottery_masks import LotteryMask
 
 def parse_args():
@@ -68,7 +67,7 @@ def parse_args():
     parser.add_argument('-end', type=float, default=default_end, help='end')
     parser.add_argument('-start', type=float, default=default_start, help='start')
     parser.add_argument('-steps', type=int, default=default_steps, help='number of pruning steps')
-    parser.add_argument('--cuda', type=int, help='use cuda, if use, then give gpu number')
+    parser.add_argument('-cuda', type=int, help='use cuda, if use, then give gpu number')
     parser.add_argument('--seed', type=int, default=default_seed, help='seed for randomness')
     parser.add_argument('--augment', action='store_true', help='augment data with random-flip and random crop')
     parser.add_argument('--milestones', type=int, nargs='+', default=default_milestones, help='milestones for multistep-lr')
@@ -187,8 +186,8 @@ if __name__ == '__main__':
         torch.backends.cudnn.benchmark = False
 
     # cool plotting style
-    sns.set_style('darkgrid')
-    # sns.set_palette('Set2')
+    sns.set_style('whitegrid')
+    sns.set_palette('Set2')
 
     # directory structure
     log_dir = osp.join(args.run, 'logs')
@@ -223,7 +222,7 @@ if __name__ == '__main__':
     # get dataset mean, std
     mean, std = get_mean_std(args.dataset)
     config = get_dataset_config(args.dataset)
-    train_transform, test_transform = get_dataset_transforms(mean, std, args.augment)
+    train_transform, test_transform = get_dataset_transforms(mean, std, config['size'], augment=args.augment)
     train_data, test_data = get_dataset(args.dataset, args.dataset_root, train_transform, test_transform)
     
     dataloaders = dict()
@@ -240,23 +239,10 @@ if __name__ == '__main__':
     )
 
     # torch device    
-    if args.cuda is None:
-        device = torch.device('cpu')
-    else:
-        device = torch.device('cuda:%d' % args.cuda)
+    device = torch.device('cuda:%d' % args.cuda)
 
     # model
-    if hasattr(models, args.model):
-        model = getattr(models, args.model)(pretrained=args.pre)
-    else:
-        model = getattr(networks, args.model)(ch=config['ch'], size=config['size'])
-
-    if hasattr(model, 'fc'):
-        model.fc.out_features = config['num_classes']
-    elif hasattr(model, 'classifier'):
-        model.classifier[-1].out_features = config['num_classes']
-    else:
-        raise Exception("could not change number of logits")
+    model = networks.get_model(args.model, args.dataset)
 
     # model_weights_path = osp.join(ckpt_dir, 'model_weights.pth')
     # assert osp.exists(model_weights_path), '{} was not found'.format(model_weights_path)
@@ -309,7 +295,7 @@ if __name__ == '__main__':
                     )
 
         unpruned_count, overall_count = mask.get_pruned_stats()
-        Pm = unpruned_count / overall_count
+        Pm = unpruned_count / overall_count * 100.0
         print('Pm:', Pm.item(), '%')
 
         mask.update_mask(model)
@@ -320,7 +306,11 @@ if __name__ == '__main__':
         mask.reset_to_init(model, init_state_dict)
 
         # save
-        # torch.save(system['model'], osp.join(ckpt_dir, 'model_weights.pth'))
+        torch.save({
+                'model': system['model'],
+                'mask': mask.get_mask()
+            }, osp.join(ckpt_dir, 'model_weights_{:.3f}.pth'.format(Pm))
+        )
 
         # train stats as npz
         acc_stats_path = osp.join(ckpt_dir, 'train_lottery_acc_stats_{:.3e}.npz'.format(Pm))

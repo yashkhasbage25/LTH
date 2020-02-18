@@ -20,9 +20,11 @@ def parse_args():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
+    default_nrow = 10
     default_dpi = 200
 
     parser.add_argument('-r', '--run', type=str, required=True, help='run dir')
+    parser.add_argument('-nrow', type=int, default=default_nrow, help='number of rows')
     parser.add_argument('-dpi', type=int, default=default_dpi, help='dpi of image saved')
     parser.add_argument('-pdb', action='store_true', help='run with pdb')
 
@@ -56,8 +58,10 @@ if __name__ == '__main__':
         for epoch in epochs:
             plt.close('all')
             plt.axis('off')
+            plt.figure(figsize=(5, 5))
             plt.title('{:.2f}%, epoch={}'.format(float(Pm), epoch))
-            plt.imshow(np.transpose(vutils.make_grid(arrs[epoch], padding=2, normalize=True).cpu(), (1, 2, 0)))
+            plt.tight_layout()
+            plt.imshow(np.transpose(vutils.make_grid(arrs[epoch], nrow=args.nrow, padding=2, normalize=True).cpu(), (1, 2, 0)))
 
             image_path = osp.join(images_dir, 'gene_Pm={:.3e}_epoch={}.png'.format(float(Pm), epoch))
             plt.savefig(image_path, dpi=args.dpi)

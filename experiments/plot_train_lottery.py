@@ -35,6 +35,7 @@ if __name__ == '__main__':
         import pdb
         pdb.set_trace()
 
+    # sns.set_style('darkgrid')
     sns.set_style('whitegrid')
     sns.set_palette('Set2')
 
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     fig = plt.figure()
     plt.plot(acc_list)
     plt.plot([acc_list[0]] * len(acc_list), label='unpruned')
-    plt.xticks(np.arange(len(x_ticks)), ['{:.3f}'.format(x * 100) for x in x_ticks])
+    plt.xticks(np.arange(len(x_ticks)), ['{:.3f}'.format(x) for x in x_ticks])
 
     image_path = osp.join(images_dir, 'train_lottery.png')
     fig.savefig(image_path, dpi=args.dpi)

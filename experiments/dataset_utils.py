@@ -5,7 +5,7 @@ from torchvision import datasets
 from torchvision import transforms
 from torch.utils import data
 
-dataset_choices = ['MNIST', 'FashionMNIST', 'SVHN', 'STL10', 'CIFAR10', 'CIFAR100', 'TinyImageNet', 'CelebA']
+dataset_choices = ['MNIST', 'FashionMNIST', 'SVHN', 'STL10', 'CIFAR10', 'CIFAR100', 'TinyImageNet', 'CelebA', 'LSUN']
 
 def get_dataset(dataset_name, dataset_root, train_transform, test_transform):
 
@@ -33,8 +33,11 @@ def get_dataset(dataset_name, dataset_root, train_transform, test_transform):
     elif dataset_name == 'CelebA':
         train_data = datasets.ImageFolder(osp.join(dataset_root, 'CelebA'), transform=train_transform)
         test_data = None
+    elif dataset_name == 'LSUN':
+        train_data = datasets.LSUN(osp.join(dataset_root, 'LSUN'), classes=['bedroom_train'], transform=train_transform)
+        test_data = None
     else:
-        raise Exception('Unknown dataset: {}'.format(args.dataset))
+        raise Exception('Unknown dataset: {}'.format(dataset_name))
 
     return train_data, test_data
 
@@ -63,6 +66,9 @@ def get_mean_std(dataset):
     elif dataset == 'CelebA':
         mean = [0.5, 0.5, 0.5]
         std = [0.5, 0.5, 0.5]
+    elif dataset == 'LSUN':
+        mean = [0.5, 0.5, 0.5]
+        std = [0.5, 0.5, 0.5]
     else:
         raise Exception('Unknown dataset: {}'.format(dataset))
 
@@ -80,7 +86,7 @@ def get_dataset_transforms(mean, std, size, augment=False):
         train_transform = transforms.Compose([
             transforms.Resize(size),
             transforms.ColorJitter(),
-            transforms.RandomRotation(10),
+            # transforms.RandomRotation(10),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize(mean, std)
@@ -145,6 +151,13 @@ def get_dataset_config(dataset_name):
         config['num_classes'] = None
 
         config['dataset_size']= {'train': 202599}
+
+    elif dataset_name in ['LSUN']:
+        config['size'] = 64
+        config['ch']   = 3
+        config['num_classes'] = None
+        
+        config['dataset_size'] = {'train': 168103}
 
     else:
         raise Exception('unknown dataset: {}'.format(dataset_name))

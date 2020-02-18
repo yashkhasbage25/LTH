@@ -115,10 +115,10 @@ def train(D,
 
         # learn 
         for batch, _ in dataloader:
-
+            '''
             # reset grads to zero
             # gtopim.zero_grad()
-            doptim.zero_grad()
+            D.zero_grad()
 
             # form data
             batch = batch.to(device)
@@ -132,29 +132,71 @@ def train(D,
             d_prob = d_prob.squeeze()
             d_real_loss = criterion(d_prob, y_real)
 
+            d_real_loss.backward()
+
+            Dx = d_prob.mean().item()
+
             z = torch.randn(batch_size, z_len).view(batch_size, z_len, 1, 1).to(device)
             fake_img = G(z)
 
             d_prob = D(fake_img).squeeze()
             d_fake_loss = criterion(d_prob, y_fake)
 
+            d_fake_loss.backward()
+            D_G_z1 = d_prob.mean().item()
             d_loss = d_real_loss + d_fake_loss
-            d_loss.backward()
+
             doptim.step()
 
             dloss_list.append(d_loss.item())
 
             # generator step
-            goptim.zero_grad()
+            G.zero_grad()
 
-            z = torch.randn(batch_size, z_len).view(batch_size, z_len, 1, 1).to(device)
-            fake_image = G(z)
-            d_prob = D(fake_image).squeeze()
+            d_prob = D(fake_img.detach()).squeeze()
             g_loss = criterion(d_prob, y_real)
             g_loss.backward()
+            D_G_z2 = d_prob.mean().item()
             goptim.step()
 
             gloss_list.append(g_loss.item())
+            '''
+
+            # data
+            batch_size = batch.size(0)
+            batch = batch.to(device)
+
+            y_real = torch.ones(batch_size).to(device)
+            y_fake = torch.zeros(batch_size).to(device)
+
+            d_prob = D(batch)
+            d_prob = d_prob.squeeze()
+            d_real_loss = criterion(d_prob, y_real)
+
+            z = torch.randn((batch_size, z_len)).view(batch_size, z_len, 1, 1).to(device)
+            fake_img = G(z)
+            d_fake_prob = D(fake_img).squeeze()
+            d_fake_loss = criterion(d_fake_prob, y_fake)
+
+            d_loss = d_real_loss + d_fake_loss 
+            dloss_list.append(d_loss.item())
+
+            D.zero_grad()
+            d_loss.backward()
+            doptim.step()
+
+            # generator step 
+            z = torch.randn((batch_size, z_len)).view(batch_size, z_len, 1, 1).to(device)
+            fake_img = G(z)
+            d_prob = D(fake_img)
+            d_prob = d_prob.squeeze()
+            g_loss = criterion(d_prob, y_real)
+            gloss_list.append(g_loss.item())
+
+            D.zero_grad()
+            G.zero_grad()
+            g_loss.backward()
+            goptim.step()
 
         # scheduler
         gscheduler.step()

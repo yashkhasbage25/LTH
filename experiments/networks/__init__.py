@@ -19,9 +19,9 @@ def get_model(model, dataset, utility='classifier'):
             disc = getattr(mnist, model).Discriminator()
             gene = getattr(mnist, model).Generator()
         elif dataset in ['CIFAR10', 'SVHN']:
-            disc = getattr(cifar, model).Discriminator()
-            gene = getattr(cifar, model).Generator()     
-        elif dataset in ['CelebA']:
+            disc = getattr(cifar10, model).Discriminator()
+            gene = getattr(cifar10, model).Generator()     
+        elif dataset in ['CelebA', 'TinyImageNet', 'LSUN']:
             disc = getattr(celeba, model).Discriminator()
             gene = getattr(celeba, model).Generator()  
         else:

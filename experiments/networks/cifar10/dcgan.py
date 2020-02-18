@@ -5,7 +5,7 @@ import torch.nn as nn
 
 class Generator(nn.Module):
     
-    def __init__(self, d=8, z_len=100):
+    def __init__(self, d=64, z_len=100):
 
         super(Generator, self).__init__()
 
@@ -42,22 +42,22 @@ class Generator(nn.Module):
 
 class Discriminator(nn.Module):
 
-    def __init__(self, d=8):
+    def __init__(self, d=64):
 
         super(Discriminator, self).__init__()
 
         layers = [
             nn.Conv2d(3, d, 4, 2, 1), # (d, 16, 16)
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(d, d * 2, 4, 2, 1), # (2d, 8, 8)
             nn.BatchNorm2d(d * 2),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(d * 2, d * 4, 4, 2, 1), # (4d, 4, 4)
             nn.BatchNorm2d(d * 4),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(d * 4, d * 8, 4, 2, 1), # (8d, 2, 2)
             nn.BatchNorm2d(d * 8),
-            nn.LeakyReLU(0.2),
+            nn.LeakyReLU(0.2, inplace=True),
             nn.Conv2d(d * 8, 1, 4, 2, 1), # (1, 1, 1)
             nn.Sigmoid()
         ]

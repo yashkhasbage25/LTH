@@ -89,6 +89,13 @@ def get_activations(layer_name):
     
     return hook
 
+def load_state_dict(model, ckpt_path):
+
+    try:
+        model.load_state_dict(torch.load(ckpt_path)['model'])
+    except RuntimeError:
+        model.module.load_state_dict(torch.load(ckpt_path)['model'])
+    return model
 
 if __name__ == '__main__':
 
@@ -180,7 +187,8 @@ if __name__ == '__main__':
 
         # model = networks.get_model(args.model, args.dataset).to(device)
         ckpt_path = osp.join(ckpt_dir, 'final_weights_Pm_{}.pth'.format(Pm))
-        model.load_state_dict(torch.load(ckpt_path)['model'])
+        model = load_state_dict(model, ckpt_path)
+        # model.load_state_dict(torch.load(ckpt_path)['model'])
 
         activations = dict()
         pruned_activations = dict()

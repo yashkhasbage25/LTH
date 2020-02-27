@@ -53,6 +53,7 @@ if __name__ == '__main__':
     for Pm in Pm_list:
 
         acc_stats_path = osp.join(ckpt_dir, 'train_lottery_acc_stats_{:.3e}.npz'.format(Pm))
+        assert osp.exists(acc_stats_path), '{} was not found'.format(acc_stats_path)
         stats = np.load(acc_stats_path)
         x_ticks.append(Pm)
         acc_list.append(stats['test'][-1])

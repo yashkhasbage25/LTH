@@ -163,3 +163,11 @@ def get_dataset_config(dataset_name):
         raise Exception('unknown dataset: {}'.format(dataset_name))
 
     return config
+
+def get_directories(run_dir):
+
+    ckpt_dir = osp.join(run_dir, 'ckpt')
+    images_dir = osp.join(run_dir, 'images')
+    log_dir = osp.join(run_dir, 'logs')
+
+    return (ckpt_dir, images_dir, log_dir)
